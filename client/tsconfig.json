@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+      "target": "ES6",                        // Modern JS target for better performance
+      "lib": ["DOM", "DOM.Iterable", "ESNext"], // Includes necessary libraries for React and modern JS
+      "allowJs": true,                         // Allow JavaScript files to be compiled
+      "skipLibCheck": true,                    // Skip type checking of declaration files for faster builds
+      "esModuleInterop": true,                 // Enable ES module interop
+      "allowSyntheticDefaultImports": true,    // Allow default imports from modules with no default export
+      "strict": true,                          // Enable all strict type-checking options
+      "forceConsistentCasingInFileNames": true, // Enforce consistent file naming
+      "noFallthroughCasesInSwitch": true,      // Ensure all switch statements have default cases
+      "module": "ESNext",                      // Use the latest ECMAScript module syntax
+      "moduleResolution": "Node",              // Resolve modules in Node.js style
+      "resolveJsonModule": true,               // Allow importing JSON files as modules
+      "isolatedModules": true,                 // Ensure that each file can be safely transpiled without relying on other files
+      "noEmit": true,                          // Don't emit compiled files; useful for type-checking only
+      "jsx": "react-jsx",                      // Use the new JSX transform (React 17+)
+      "incremental": true,                     // Enable incremental compilation for faster builds
+      "baseUrl": "./src",                      // Base URL for resolving non-relative modules
+      "paths": {
+        "@components/*": ["components/*"],     // Path alias for easier imports
+        "@utils/*": ["utils/*"]
+      }
+    },
+    "include": ["src"],                         // Include all TypeScript and JavaScript files in the src directory
+    "exclude": ["node_modules", "build"]       // Exclude node_modules and build directories
+  }
+  
