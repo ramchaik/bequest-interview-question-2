@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+      "target": "ES2020",                      // Target ECMAScript version that Node.js supports well
+      "lib": ["ES2020"],                       // Include standard ECMAScript libraries
+      "module": "CommonJS",                    // Node.js uses CommonJS module system
+      "moduleResolution": "Node",              // Resolve modules using Node.js strategy
+      "esModuleInterop": true,                 // Enable interoperability between CommonJS and ES modules
+      "allowSyntheticDefaultImports": true,    // Allow default imports from modules with no default export
+      "strict": true,                          // Enable all strict type-checking options
+      "forceConsistentCasingInFileNames": true, // Enforce consistent file naming
+      "skipLibCheck": true,                    // Skip type checking of declaration files for faster builds
+      "outDir": "./dist",                      // Redirect output structure to the dist directory
+      "rootDir": "./src",                      // Specify the root directory of input files
+      "resolveJsonModule": true,               // Allow importing JSON files as modules
+      "isolatedModules": true,                 // Ensure that each file can be safely transpiled without relying on other files
+      "noEmit": false,                         // Allow TypeScript to emit output files
+      "noUnusedLocals": true,                  // Report errors on unused local variables
+      "noUnusedParameters": true,              // Report errors on unused function parameters
+      "noImplicitReturns": true,               // Ensure all code paths in a function return a value
+      "noFallthroughCasesInSwitch": true,      // Ensure all switch statements have default cases
+      "incremental": true                      // Enable incremental compilation for faster builds
+    },
+    "include": ["src"],                         // Include all TypeScript files in the src directory
+    "exclude": ["node_modules", "dist"],        // Exclude node_modules and dist directories
+    "ts-node": {
+      "files": true                             // Include files in compilation when using ts-node
+    }
+  }
+  
