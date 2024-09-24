@@ -1,54 +1,56 @@
 import React, { useEffect, useState, useCallback } from "react";
-import hmacSHA512 from "crypto-js/hmac-sha512";
-import encHex from "crypto-js/enc-hex";
-import sha512 from "crypto-js/sha512";
+import CryptoJS from "crypto-js";
 
 const API_URL = "http://localhost:8080";
 
+// Example keys, in practice these should be securely generated and stored
+const encryptionKey = CryptoJS.enc.Hex.parse(CryptoJS.lib.WordArray.random(32).toString());
+const hmacKey = CryptoJS.enc.Hex.parse(CryptoJS.lib.WordArray.random(32).toString());
+
 function App() {
-  const [token, setToken] = useState<string | null>(null);
-  const [secret, setSecret] = useState<string | null>(null);
   const [data, setData] = useState<string>("");
+  const [encryptedData, setEncryptedData] = useState<string>("");
   const [checksum, setChecksum] = useState<string>("");
   const [isTampered, setIsTampered] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    const initializeClient = async () => {
-      const response = await fetch(`${API_URL}/init`, { method: "POST" });
-      const { token, secret } = await response.json();
-      setToken(token);
-      setSecret(secret);
-    };
+  const encryptData = (data: string) => {
+    const iv = CryptoJS.lib.WordArray.random(16);
+    const encrypted = CryptoJS.AES.encrypt(data, encryptionKey, { iv: iv }).toString();
+    return { iv: iv.toString(), encryptedData: encrypted };
+  };
 
-    initializeClient();
-  }, []);
+  const decryptData = (encryptedData: string, iv: string) => {
+    const decrypted = CryptoJS.AES.decrypt(encryptedData, encryptionKey, {
+      iv: CryptoJS.enc.Hex.parse(iv),
+    }).toString(CryptoJS.enc.Utf8);
+    return decrypted;
+  };
 
-  const generateHMAC = useCallback((data: string, checksum: string, secret: string) => {
+  const generateHMAC = useCallback((data: string, checksum: string) => {
     const message = `${data}-${checksum}`;
-    return hmacSHA512(message, secret).toString(encHex);
+    return CryptoJS.HmacSHA512(message, hmacKey).toString(CryptoJS.enc.Hex);
   }, []);
 
   const generateChecksum = useCallback((data: string) => {
-    return sha512(data).toString(encHex);
+    return CryptoJS.SHA512(data).toString(CryptoJS.enc.Hex);
   }, []);
 
   const getData = useCallback(async () => {
-    if (!token || !secret) return;
     setLoading(true);
     try {
-      const response = await fetch(API_URL, {
-        headers: { "x-client-token": token },
-      });
-      const { data, hmac, checksum, isValid } = await response.json();
+      const response = await fetch(API_URL);
+      const { data, iv, hmac, checksum } = await response.json();
 
-      const clientHMAC = generateHMAC(data, checksum, secret);
+      const clientHMAC = generateHMAC(data, checksum);
 
-      if (!isValid || clientHMAC !== hmac) {
+      if (clientHMAC !== hmac) {
         setIsTampered(true);
       } else {
-        setData(data);
+        const decryptedData = decryptData(data, iv);
+        setData(decryptedData);
         setChecksum(checksum);
+        setEncryptedData(data);
         setIsTampered(false);
       }
     } catch (error) {
@@ -57,23 +59,22 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [generateHMAC, token, secret]);
+  }, [generateHMAC]);
 
   const updateData = useCallback(async () => {
-    if (!token || !secret) return;
     setLoading(true);
     try {
+      const { iv, encryptedData } = encryptData(data);
       const newChecksum = generateChecksum(data);
-      const clientHMAC = generateHMAC(data, newChecksum, secret);
-      
+      const clientHMAC = generateHMAC(encryptedData, newChecksum);
+
       await fetch(API_URL, {
         method: "POST",
         headers: {
-          "x-client-token": token,
           Accept: "application/json",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ data, checksum: newChecksum, hmac: clientHMAC }),
+        body: JSON.stringify({ data: encryptedData, iv, checksum: newChecksum, hmac: clientHMAC }),
       });
 
       await getData();
@@ -82,22 +83,21 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [data, generateChecksum, generateHMAC, getData, token, secret]);
+  }, [data, generateChecksum, generateHMAC, getData]);
 
   const recoverData = useCallback(async () => {
-    if (!token || !secret) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/recover`, {
-        headers: { "x-client-token": token },
-      });
-      const { data, hmac, checksum, isValid } = await response.json();
+      const response = await fetch(`${API_URL}/recover`);
+      const { data, iv, hmac, checksum } = await response.json();
 
-      const clientHMAC = generateHMAC(data, checksum, secret);
+      const clientHMAC = generateHMAC(data, checksum);
 
-      if (isValid && clientHMAC === hmac) {
-        setData(data);
+      if (clientHMAC === hmac) {
+        const decryptedData = decryptData(data, iv);
+        setData(decryptedData);
         setChecksum(checksum);
+        setEncryptedData(data);
         setIsTampered(false);
       } else {
         alert("Failed to recover valid data.");
@@ -107,7 +107,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [generateHMAC, token, secret]);
+  }, [generateHMAC]);
 
   return (
     <div
@@ -140,14 +140,14 @@ function App() {
         <button
           style={{ fontSize: "20px" }}
           onClick={updateData}
-          disabled={loading || !token || !secret}
+          disabled={loading}
         >
           Update Data
         </button>
         <button
           style={{ fontSize: "20px" }}
           onClick={recoverData}
-          disabled={loading || !token || !secret}
+          disabled={loading}
         >
           Recover Data
         </button>
